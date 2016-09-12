@@ -199,6 +199,69 @@ lorem-ipsum
 `, "output")
 }
 
+func TestAppDestroy(t *testing.T) {
+	t.Parallel()
+	cf, server, err := testutil.NewTestServerAndClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	var b bytes.Buffer
+	cmdr := DeisCmd{WOut: &b, ConfigFile: cf}
+
+	server.Mux.HandleFunc("/v2/apps/lorem-ipsum/", func(w http.ResponseWriter, r *http.Request) {
+		testutil.SetHeaders(w)
+		fmt.Fprintf(w, `{
+    "uuid": "c4aed81c-d1ca-4ff1-ab89-d2151264e1a3",
+    "id": "lorem-ipsum",
+    "owner": "dolar-sit-amet",
+    "structure": {
+      "cmd": 1
+    },
+    "created": "2016-08-22T17:40:16Z",
+    "updated": "2016-08-22T17:40:16Z"
+}`)
+	})
+	err = cmdr.AppDestroy("lorem-ipsum", "bad-confirm-string")
+	assert.Equal(t, err.Error(), `App lorem-ipsum does not match confirm bad-confirm-string, aborting.`, "output")
+
+	err = cmdr.AppDestroy("lorem-ipsum", "lorem-ipsum")
+	assert.NoErr(t, err)
+	assert.Equal(t, testutil.StripProgress(b.String()), `Destroying lorem-ipsum...
+done in 0s
+`, "output")
+}
+
+func TestAppTransfer(t *testing.T) {
+	t.Parallel()
+	cf, server, err := testutil.NewTestServerAndClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	var b bytes.Buffer
+	cmdr := DeisCmd{WOut: &b, ConfigFile: cf}
+
+	server.Mux.HandleFunc("/v2/apps/lorem-ipsum/", func(w http.ResponseWriter, r *http.Request) {
+		testutil.SetHeaders(w)
+		fmt.Fprintf(w, `{
+    "uuid": "c4aed81c-d1ca-4ff1-ab89-d2151264e1a3",
+    "id": "lorem-ipsum",
+    "owner": "dolar-sit-amet",
+    "structure": {
+      "cmd": 1
+    },
+    "created": "2016-08-22T17:40:16Z",
+    "updated": "2016-08-22T17:40:16Z"
+}`)
+	})
+
+	err = cmdr.AppTransfer("lorem-ipsum", "test-user")
+	assert.NoErr(t, err)
+	assert.Equal(t, testutil.StripProgress(b.String()), `Transferring lorem-ipsum to test-user... done
+`, "output")
+}
+
 func TestExpandUrl(t *testing.T) {
 	checks := []expandURLCases{
 		{
